@@ -4,7 +4,7 @@ Aplicație Windows personalizabilă pentru acces la distanță la calculatoarele
 
 Funcțiile implementate includ selectarea monitorului, vederea întregului desktop, ferestre separate pentru mai multe monitoare, controlul mouse-ului și al tastaturii, conexiuni TLS directe prin LAN/VPN și un releu Linux propriu opțional pentru conexiuni prin internet.
 
-**Versiune de dezvoltare 0.1.** La pregătirea surselor nu a fost confirmată o compilare reușită. Verifică rezultatul fiecărei rulări din Actions. O compilare reușită nu înlocuiește verificarea instalării și a unei conexiuni pe două PC-uri Windows.
+**Versiune de dezvoltare 0.1.** Fluxul publică o versiune în Releases numai după trecerea testelor automate, compilare și verificarea instalării, pornirii și dezinstalării pe runner Windows. Verifică jurnalul din Actions pentru fiecare compilare. Aceste verificări nu înlocuiesc testarea unei conexiuni și a monitoarelor pe două PC-uri Windows reale.
 
 ## Executabil și instalator
 

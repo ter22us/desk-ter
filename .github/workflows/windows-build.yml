@@ -68,6 +68,11 @@ jobs:
           & tar -czf artifacts/Ter22-Relay-linux-x64.tar.gz -C artifacts/relay-linux-x64 .
           if ($LASTEXITCODE -ne 0) { throw 'Arhivarea releului a esuat.' }
 
+      - name: Verifica instalarea, pornirea si dezinstalarea
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./scripts/test-windows-package.ps1 *>&1 | Tee-Object -FilePath artifacts/smoke.log
+
       - name: Verifica fisierele rezultate si calculeaza SHA-256
         run: |
           $ErrorActionPreference = 'Stop'
@@ -87,7 +92,8 @@ jobs:
             "Commit: $env:GITHUB_SHA",
             "Run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID",
             'Verificare automata: testele incluse, publicare Windows x64, Inno Setup si publicare releu Linux.',
-            'Controlul desktopului, monitoarele fizice si instalarea necesita verificare pe PC-uri reale.'
+            'Pachet verificat pe runner Windows: instalare, SHA-256 instalat, fereastra principala, inchidere si dezinstalare.',
+            'Controlul desktopului, monitoarele fizice si compatibilitatea PC-urilor tinta necesita verificare pe hardware real.'
           ) | Set-Content -LiteralPath artifacts/BUILD-INFO.txt -Encoding utf8
 
       - name: Ofera executabilul pentru descarcare
@@ -139,7 +145,8 @@ jobs:
             "Surse: commit $env:GITHUB_SHA.",
             "Jurnal: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID",
             '',
-            'Testele automate incluse si compilarea au trecut. Captura, controlul, monitoarele fizice si instalarea trebuie verificate pe PC-uri reale.',
+            'Testele automate, compilarea si verificarea instalarii, pornirii si dezinstalarii pe runner Windows au trecut.',
+            'Captura, controlul, monitoarele fizice si compatibilitatea PC-urilor tinta trebuie verificate pe hardware real.',
             'Este necesar ca utilizatorul Windows sa fie autentificat, desktopul deblocat si aplicatia deschisa. Executabilele proiectului nu sunt semnate digital.',
             'Pentru releul Linux, dupa extragere aplica chmod 700 Ter22.Relay si urmeaza GHID_RO.md.'
           ) | Set-Content -LiteralPath artifacts/release-notes.md -Encoding utf8
@@ -167,6 +174,9 @@ jobs:
           path: |
             artifacts/build.log
             artifacts/relay-build.log
+            artifacts/smoke.log
+            artifacts/install-smoke.log
+            artifacts/uninstall-smoke.log
             artifacts/SHA256SUMS.txt
             artifacts/BUILD-INFO.txt
             GHID_RO.md

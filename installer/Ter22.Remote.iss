@@ -26,7 +26,7 @@ RestartApplications=no
 SetupLogging=yes
 
 [Languages]
-Name: "romanian"; MessagesFile: "compiler:Languages\Romanian.isl"
+Name: "romanian"; MessagesFile: "Languages\Romanian.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]

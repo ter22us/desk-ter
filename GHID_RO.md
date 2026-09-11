@@ -2,7 +2,7 @@
 
 Proiect C#/.NET propriu pentru controlul calculatoarelor personale, cu interfață Windows Forms, captură de ecran, mouse și tastatură, monitoare multiple și un releu privat opțional. Același executabil Windows permite atât primirea unei conexiuni, cât și controlarea altui calculator. Nu depinde de instalarea AnyDesk sau RustDesk.
 
-**Statutul livrării:** sunt incluse sursele implementării, testele, scripturile de compilare și configurația instalatorului. Compilarea și testarea funcțională pe Windows NU sunt confirmate în această livrare. Runtime-ul .NET nu a pornit în mediul de pregătire; vezi `VERIFICARE.md`. Versiunea 0.1 trebuie validată pe două calculatoare Windows înainte de a te baza pe ea pentru muncă la distanță.
+**Statutul livrării:** versiune de dezvoltare 0.1. Publicările din Releases sunt generate numai după trecerea testelor automate, compilare și verificarea instalării, pornirii și dezinstalării pe un runner Windows. Rezultatul exact al fiecărei compilări este indicat în `BUILD-INFO.txt` și în jurnalul GitHub Actions. Controlul real la distanță și comportamentul monitoarelor multiple trebuie validate pe două calculatoare Windows; vezi `VERIFICARE.md`.
 
 ## 1. Ce include această versiune
 
@@ -34,7 +34,7 @@ Aceste limite descriu funcțiile absente; nu sunt funcții simulate sau activate
 
 ## 2. Obținerea executabilului și a instalatorului
 
-Pentru compilare pe un calculator Windows găzduit de GitHub, fără SDK instalat local, vezi `COMPILARE_GITHUB.md`. Configurația este inclusă, dar nu a fost încă rulată.
+Pentru compilare pe un calculator Windows găzduit de GitHub, fără SDK instalat local, vezi `COMPILARE_GITHUB.md`. Compilările sunt gestionate în repository-ul public `ter22us/desk-ter`, iar instalatoarele rezultate apar în Releases.
 
 Țintă de instalare: **Windows 11 x64**. Pentru compilare:
 

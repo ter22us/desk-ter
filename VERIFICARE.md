@@ -10,20 +10,25 @@ Data: 11 septembrie 2026.
 - Revizuirea fluxurilor de autentificare, a limitelor mesajelor, a eliberării inputului, a anulării și a rutării.
 - Parsarea YAML și verificarea referințelor configurației de compilare GitHub Actions. Acțiunile și hashul Inno Setup provin din publicările oficiale verificate la pregătire.
 
-## Neconfirmat
+## Compilare și teste pe Windows
 
-**Nu există un rezultat de compilare reușită în această livrare.** SDK-ul .NET 10.0.401 a fost descărcat de la Microsoft și verificat folosind hashul SHA-512 din metadatele oficiale, dar pornirea runtime-ului în mediul disponibil a eșuat înainte de compilare cu `Failed to create CoreCLR, HRESULT: 0x8007000E`.
+[Prima rulare pe GitHub Actions](https://github.com/ter22us/desk-ter/actions/runs/34575167691), cu .NET SDK 10.0.401, a trecut toate cele 10 teste și a publicat executabilul Windows x64. Testele acoperă protocolul, validarea codurilor, geometria monitoarelor, dimensiunile JPEG, autentificarea TLS, respingerea certificatelor/tokenurilor greșite și transferul prin releu.
 
-În consecință:
+Acea rulare s-a oprit la instalator, deoarece Inno Setup nu distribuie traducerea română în instalarea standard. Traducerea este acum inclusă în proiect, cu proveniență și licență, iar configurația folosește fișierul local.
 
-- Cele 10 teste C# incluse nu au fost executate aici și nu sunt raportate drept trecute.
-- Executabilul Windows și instalatorul nu au fost construite sau rulate aici.
-- Captura, inputul și comportamentul în situații reale de rețea nu au fost validate pe Windows.
-- Analiza sintactică nu înlocuiește compilarea, analiza semantică, testele de integrare sau un audit de securitate.
+Fluxul verifică suplimentar pachetul rezultat prin `scripts/test-windows-package.ps1`: instalare în română într-un director temporar, compararea hashului aplicației instalate, deschiderea și închiderea ferestrei principale, apoi dezinstalare. Acest test nu pornește accesul la distanță.
 
-`Build-Installer.cmd` și scriptul PowerShell opresc procesul dacă un test sau compilarea eșuează. Păstrează eroarea completă pentru diagnostic dacă apare o problemă la compilarea pe Windows.
+O versiune este publicată în **Releases** numai după trecerea tuturor etapelor. Pentru confirmarea aferentă fiecărei versiuni, verifică `BUILD-INFO.txt`, commitul asociat și jurnalul acelei rulări din Actions. Jurnalele etapelor sunt păstrate și în artefactul `Ter22-Remote-verificare`.
 
-Încercarea suplimentară de compilare locală a întâlnit aceeași eroare de pornire CoreCLR. Transferul compilatorului către un runtime alternativ a fost respins de verificarea automată deoarece scriptul de transfer depășea limita de 64.000 de octeți. Fluxul Windows din GitHub Actions este pregătit, dar nu a fost încă rulat; detalii în `COMPILARE_GITHUB.md`.
+## Ce nu confirmă aceste verificări
+
+- Nu a fost efectuat un test funcțional complet pe două PC-uri Windows 11 fizice.
+- Captura efectivă a mai multor ecrane, inputul și comportamentul în rețele reale necesită verificările de mai jos.
+- Testul pachetului rulează pe Windows Server 2025 furnizat de GitHub, nu pe fiecare configurație Windows 11 a utilizatorului.
+- Publicarea releului Linux verifică generarea binarului; acel binar trebuie verificat și pe serverul Linux țintă.
+- Testele automate nu înlocuiesc un audit de securitate sau măsurarea performanței pe hardware-ul folosit.
+
+Scripturile de compilare și fluxul opresc procesul la o eroare. În mediul local de pregătire, CoreCLR nu a putut porni; compilările executabilelor sunt efectuate pe GitHub Actions.
 
 ## Verificări necesare pe două PC-uri Windows 11 x64
 
