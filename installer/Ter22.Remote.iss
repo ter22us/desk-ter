@@ -1,5 +1,5 @@
 #define MyAppName "Ter22 Remote"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.1.1"
 #define MyAppExeName "Ter22.Remote.exe"
 
 [Setup]
@@ -13,7 +13,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-MinVersion=10.0.22000
+MinVersion=10.0.19045
 OutputDir=..\artifacts\installer
 OutputBaseFilename=Ter22-Remote-Setup-{#MyAppVersion}
 Compression=lzma2

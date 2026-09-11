@@ -1,4 +1,4 @@
-# Verificarea livrării Ter22 Remote 0.1
+# Verificarea livrării Ter22 Remote 0.1.1
 
 Data: 11 septembrie 2026.
 
@@ -30,7 +30,15 @@ O versiune este publicată în **Releases** numai după trecerea tuturor etapelo
 
 Scripturile de compilare și fluxul opresc procesul la o eroare. În mediul local de pregătire, CoreCLR nu a putut porni; compilările executabilelor sunt efectuate pe GitHub Actions.
 
-## Verificări necesare pe două PC-uri Windows 11 x64
+## Windows 10 Pro
+
+Versiunea 0.1.1 stabilește același prag pentru instalator și executabilul portabil: Windows 10 22H2, build 19045+, x64, sau Windows 11 x64. Nu este introdusă o dependență de API-uri exclusive Windows 11. Captura GDI, inputul Win32 și Windows Forms existente rămân baza aplicației.
+
+Nu declarăm testare efectuată pe Windows 10 Pro: runner-ul disponibil este Windows Server 2025. Trebuie verificate pe Windows 10 Pro instalarea, pornirea, captura, inputul, negocierea TLS 1.2, DPI mixt și monitoarele multiple. Pentru conectarea mixtă se verifică Windows 10 ca gazdă și Windows 11 ca vizualizator, apoi invers.
+
+[Lista oficială a sistemelor pentru .NET 10](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md) și [ciclul de viață Windows 10 Home/Pro](https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro) trebuie distinse de pragul tehnic ales de aplicație: Windows 10 Pro 22H2 nu mai este în suport standard Microsoft și nu declarăm suport oficial .NET pentru această ediție ieșită din suport standard.
+
+## Verificări necesare pe Windows 10 Pro 22H2 și Windows 11 x64
 
 | Scenariu | Rezultat așteptat |
 |---|---|

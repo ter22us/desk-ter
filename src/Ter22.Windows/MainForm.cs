@@ -69,7 +69,7 @@ internal sealed class MainForm : Form
         viewer.Controls.Add(connectTable); root.Controls.Add(viewer, 0, 3);
         root.Controls.Add(new Label { Text = "Monitoare: selectare individuală, toate ecranele sau câte o fereastră pentru fiecare.\nControlul ferestrelor UAC și accesul înainte de autentificare nu sunt incluse în versiunea 0.1.", Dock = DockStyle.Fill }, 0, 4);
         root.Controls.Add(_status, 0, 5);
-        root.Controls.Add(new Label { Text = "v0.1 · Windows x64 · F12 eliberează controlul în fereastra desktopului la distanță", Dock = DockStyle.Fill, Padding = new Padding(0, 10, 0, 0) }, 0, 6);
+        root.Controls.Add(new Label { Text = $"v{Application.ProductVersion.Split('+')[0]} · Windows x64 · F12 eliberează controlul în fereastra desktopului la distanță", Dock = DockStyle.Fill, Padding = new Padding(0, 10, 0, 0) }, 0, 6);
         Controls.Add(root);
         _mode.SelectedIndexChanged += (_, _) => UpdateMode(); UpdateMode();
         _hostButton.Click += async (_, _) => { if (_hostStop is null) await StartHostAsync(); else await StopHostAsync(); };

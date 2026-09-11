@@ -43,7 +43,7 @@ try {
         }
         & $InnoCompiler (Join-Path $projectRoot 'installer/Ter22.Remote.iss')
         if ($LASTEXITCODE -ne 0) { throw 'Generarea instalatorului a esuat.' }
-        Write-Host 'Instalator: artifacts/installer/Ter22-Remote-Setup-0.1.0.exe'
+        Write-Host 'Instalator: artifacts/installer/Ter22-Remote-Setup-0.1.1.exe'
     }
     Write-Host 'Aplicatie: artifacts/windows-x64/Ter22.Remote.exe'
 } finally { Pop-Location }

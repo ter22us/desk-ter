@@ -8,7 +8,7 @@ if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
 }
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $artifacts = Join-Path $projectRoot 'artifacts'
-$setup = Join-Path $artifacts 'installer/Ter22-Remote-Setup-0.1.0.exe'
+$setup = Join-Path $artifacts 'installer/Ter22-Remote-Setup-0.1.1.exe'
 $published = Join-Path $artifacts 'windows-x64/Ter22.Remote.exe'
 $installDir = Join-Path ([IO.Path]::GetTempPath()) ('DeskTer-Package-Test-' + [Guid]::NewGuid().ToString('N'))
 $installLog = Join-Path $artifacts 'install-smoke.log'

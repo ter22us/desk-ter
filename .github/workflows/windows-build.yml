@@ -78,7 +78,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $paths = @(
             'artifacts/windows-x64/Ter22.Remote.exe',
-            'artifacts/installer/Ter22-Remote-Setup-0.1.0.exe',
+            'artifacts/installer/Ter22-Remote-Setup-0.1.1.exe',
             'artifacts/Ter22-Relay-linux-x64.tar.gz'
           )
           $hashes = foreach ($path in $paths) {
@@ -109,7 +109,7 @@ jobs:
         id: installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          path: artifacts/installer/Ter22-Remote-Setup-0.1.0.exe
+          path: artifacts/installer/Ter22-Remote-Setup-0.1.1.exe
           archive: false
           if-no-files-found: error
           retention-days: 14
@@ -123,9 +123,9 @@ jobs:
             'Compilarea s-a incheiat. Descarca fisierele fiind autentificat pe GitHub.',
             '',
             "- [Aplicatie Ter22.Remote.exe]($env:TER22_APP_URL)",
-            "- [Instalator Ter22-Remote-Setup-0.1.0.exe]($env:TER22_INSTALLER_URL)",
+            "- [Instalator Ter22-Remote-Setup-0.1.1.exe]($env:TER22_INSTALLER_URL)",
             '',
-            'Instaleaza versiunea pe doua PC-uri Windows 11 x64 pentru verificarea conexiunii si a monitoarelor.'
+            'Instaleaza versiunea pe doua PC-uri Windows 10 Pro 22H2 / Windows 11 x64 pentru verificarea conexiunii si a monitoarelor.'
           ) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
       - name: Publica aceasta compilare in Releases
@@ -135,9 +135,9 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $tag = "build-$env:GITHUB_RUN_NUMBER-$env:GITHUB_RUN_ATTEMPT"
           @(
-            'Compilare de dezvoltare Desk Ter / Ter22 Remote 0.1.0 pentru Windows 11 x64.',
+            'Compilare de dezvoltare Desk Ter / Ter22 Remote 0.1.1 pentru Windows 10 Pro 22H2 / Windows 11 x64.',
             '',
-            '- Ter22-Remote-Setup-0.1.0.exe: instalator pentru PC-urile Windows.',
+            '- Ter22-Remote-Setup-0.1.1.exe: instalator pentru PC-urile Windows.',
             '- Ter22.Remote.exe: aplicatia cu runtime .NET inclus.',
             '- Ter22-Relay-linux-x64.tar.gz: releul optional pentru un server Linux propriu.',
             '- SHA256SUMS.txt: hashurile celor trei fisiere.',
@@ -152,7 +152,7 @@ jobs:
           ) | Set-Content -LiteralPath artifacts/release-notes.md -Encoding utf8
           $assets = @(
             'artifacts/windows-x64/Ter22.Remote.exe',
-            'artifacts/installer/Ter22-Remote-Setup-0.1.0.exe',
+            'artifacts/installer/Ter22-Remote-Setup-0.1.1.exe',
             'artifacts/Ter22-Relay-linux-x64.tar.gz',
             'artifacts/SHA256SUMS.txt',
             'artifacts/BUILD-INFO.txt',

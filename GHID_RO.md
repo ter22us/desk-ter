@@ -1,4 +1,4 @@
-# Ter22 Remote 0.1 — aplicație Windows personalizabilă
+# Ter22 Remote 0.1.1 — aplicație Windows personalizabilă
 
 Proiect C#/.NET propriu pentru controlul calculatoarelor personale, cu interfață Windows Forms, captură de ecran, mouse și tastatură, monitoare multiple și un releu privat opțional. Același executabil Windows permite atât primirea unei conexiuni, cât și controlarea altui calculator. Nu depinde de instalarea AnyDesk sau RustDesk.
 
@@ -36,7 +36,7 @@ Aceste limite descriu funcțiile absente; nu sunt funcții simulate sau activate
 
 Pentru compilare pe un calculator Windows găzduit de GitHub, fără SDK instalat local, vezi `COMPILARE_GITHUB.md`. Compilările sunt gestionate în repository-ul public `ter22us/desk-ter`, iar instalatoarele rezultate apar în Releases.
 
-Țintă de instalare: **Windows 11 x64**. Pentru compilare:
+Țintă de instalare: **Windows 10 Pro 22H2 / Windows 11 x64**. Pentru compilare:
 
 1. Instalează **.NET SDK 10 x64**, versiune stabilă actualizată, de la [Microsoft](https://dotnet.microsoft.com/download/dotnet/10.0). Ai nevoie de SDK, nu doar de runtime. Visual Studio nu este obligatoriu.
 2. Instalează **Inno Setup 6**, versiune stabilă actualizată, de la [autorul Inno Setup](https://jrsoftware.org/isdl.php), pentru construirea instalatorului.
@@ -46,10 +46,14 @@ Pentru compilare pe un calculator Windows găzduit de GitHub, fără SDK instala
 
 ```text
 artifacts\windows-x64\Ter22.Remote.exe
-artifacts\installer\Ter22-Remote-Setup-0.1.0.exe
+artifacts\installer\Ter22-Remote-Setup-0.1.1.exe
 ```
 
 Executabilul aplicației include runtime-ul .NET. Calculatoarele pe care instalezi programul nu au nevoie de SDK sau de instalarea separată a runtime-ului .NET. Publicarea poate produce și fișiere auxiliare; instalatorul include întregul director de publicare.
+
+Pentru Windows 10 Pro este necesară versiunea 22H2, build 19045 sau ulterior, pe 64 de biți; poți verifica versiunea prin `winver`. Versiunile Windows pe 32 de biți nu sunt incluse. Instalatorul și aplicația folosesc același prag minim. Testele automate au loc pe Windows Server 2025; compatibilitatea funcțională trebuie confirmată și pe PC-urile Windows 10 Pro / Windows 11 folosite.
+
+Suportul standard Microsoft pentru Windows 10 Home și Pro s-a încheiat la 14 octombrie 2025. Compatibilitatea tehnică a aplicației nu extinde ciclul de suport al sistemului de operare. [Ciclul de viață Microsoft](https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro).
 
 Instalatorul se execută pe fiecare PC pe care vrei să utilizezi aplicația. Instalează în `%LOCALAPPDATA%\Programs\Ter22 Remote`, pentru utilizatorul curent, și oferă dezinstalare din setările Windows. Nu instalează un serviciu și nu pornește ascuns accesul la distanță. Instalatorul rezultat nu este semnat digital cu un certificat de editor.
 
