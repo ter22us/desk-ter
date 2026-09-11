@@ -7,5 +7,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Ter22.Tests/Ter22.Tests.csproj" />
     <Project Path="tests/Ter22.Windows.Tests/Ter22.Windows.Tests.csproj" />
+    <Project Path="tests/Ter22.Relay.Tests/Ter22.Relay.Tests.csproj" />
   </Folder>
 </Solution>

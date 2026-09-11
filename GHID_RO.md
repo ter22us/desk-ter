@@ -105,6 +105,8 @@ Ai două trasee implementate:
 - **Un VPN între calculatoarele tale:** folosești modul direct și adresa IPv4 din VPN. Releul aplicației nu mai este necesar.
 - **Un releu propriu:** folosești componenta `Ter22.Relay` pe un server Linux x64 compatibil cu .NET 10, cu adresă accesibilă din internet. Acest server nu a fost creat sau configurat automat.
 
+Pentru un server Ubuntu 24.04 x64, [instalatorul de serviciu](deploy/relay/README.md) configurează utilizatorul dedicat, stocarea privată a identității, unitatea systemd și pornirea automată. Acceptă atât un IP public stabil, cât și un nume DNS; un domeniu nu este obligatoriu pentru protocolul de releu cu certificat fixat. Aplicația Windows 0.1.2 existentă poate folosi acest serviciu.
+
 Pentru a construi releul pe Windows, din directorul proiectului:
 
 ```powershell

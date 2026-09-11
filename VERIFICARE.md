@@ -31,7 +31,7 @@ O versiune este publicată în **Releases** numai după trecerea tuturor etapelo
 - Nu a fost efectuat un test funcțional complet pe două PC-uri Windows 11 fizice.
 - Captura efectivă a mai multor ecrane, inputul și comportamentul în rețele reale necesită verificările de mai jos.
 - Testul pachetului rulează pe Windows Server 2025 furnizat de GitHub, nu pe fiecare configurație Windows 11 a utilizatorului.
-- Publicarea releului Linux verifică generarea binarului; acel binar trebuie verificat și pe serverul Linux țintă.
+- Fluxul include acum și un job Ubuntu 24.04: instalează binarul de releu 0.1.2 deja publicat în `build-4-1`, pornește serviciul real systemd, verifică TLS între doi clienți și transferul a 200.000 octeți în ambele sensuri, oprește normal serviciul și reconectează după repornire fără schimbarea identității. Acesta este un test pe loopback; accesibilitatea unui VPS din internet trebuie verificată pe serverul țintă. Jobul Windows depinde de succesul acestui job Linux.
 - Testele automate nu înlocuiesc un audit de securitate sau măsurarea performanței pe hardware-ul folosit.
 
 Scripturile de compilare și fluxul opresc procesul la o eroare. În mediul local de pregătire, CoreCLR nu a putut porni; compilările executabilelor sunt efectuate pe GitHub Actions.

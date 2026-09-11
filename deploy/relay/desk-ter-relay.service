@@ -1,0 +1,40 @@
+[Unit]
+Description=Desk Ter private TLS relay
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=exec
+User=desk-ter-relay
+Group=desk-ter-relay
+WorkingDirectory=/var/lib/desk-ter-relay
+EnvironmentFile=/etc/desk-ter-relay/relay.conf
+Environment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/lib/desk-ter-relay/.net
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+ExecStart=/opt/desk-ter-relay/Ter22.Relay ${RELAY_PUBLIC_HOST} ${RELAY_PORT}
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=15
+UMask=0077
+StateDirectory=desk-ter-relay
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/var/lib/desk-ter-relay
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=desk-ter-relay
+
+[Install]
+WantedBy=multi-user.target

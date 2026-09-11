@@ -9,7 +9,85 @@ permissions:
   contents: read
 
 jobs:
+  linux-relay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    steps:
+      - name: Descarca sursele
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Instaleaza .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: '10.0.401'
+      - name: Verifica scripturile si protocolul pe Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/install-relay-linux.sh
+          bash -n deploy/relay/show-code.sh
+          if ! command -v shellcheck >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y shellcheck
+          fi
+          shellcheck scripts/install-relay-linux.sh deploy/relay/show-code.sh
+          dotnet run --project tests/Ter22.Tests/Ter22.Tests.csproj -c Release
+          dotnet build tests/Ter22.Relay.Tests/Ter22.Relay.Tests.csproj -c Release
+      - name: Verifica oprirea la un hash de arhiva gresit
+        shell: bash
+        run: |
+          set -euo pipefail
+          invalid_archive=$(mktemp)
+          trap 'rm -f -- "$invalid_archive"' EXIT
+          printf '%s\n' 'invalid archive for negative test' > "$invalid_archive"
+          if sudo bash scripts/install-relay-linux.sh 127.0.0.1 45991 "$invalid_archive" \
+              0000000000000000000000000000000000000000000000000000000000000000; then
+            echo 'Instalarea cu hash gresit nu trebuia acceptata.' >&2
+            exit 1
+          fi
+          test ! -e /opt/desk-ter-relay/Ter22.Relay
+          test ! -e /etc/systemd/system/desk-ter-relay.service
+          printf '%s\n' 'PASS Linux: hashul gresit este respins inainte de instalarea executabilului si serviciului.'
+      - name: Instaleaza releul publicat ca serviciu fara root
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo bash scripts/install-relay-linux.sh 127.0.0.1 45991
+          sudo systemd-analyze verify /etc/systemd/system/desk-ter-relay.service
+          test "$(sudo stat -c '%a:%U' /var/lib/desk-ter-relay/relay-state.json)" = '600:desk-ter-relay'
+          test "$(systemctl show desk-ter-relay -p User --value)" = 'desk-ter-relay'
+          systemctl is-enabled --quiet desk-ter-relay
+          printf '%s\n' 'PASS Linux: serviciu fara root, pornire automata si identitate cu permisiuni 600.'
+      - name: Verifica transferul prin serviciu si repornirea
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo desk-ter-relay-code | dotnet run --no-build --project tests/Ter22.Relay.Tests/Ter22.Relay.Tests.csproj -c Release
+          before=$(sudo sha256sum /var/lib/desk-ter-relay/relay-state.json)
+          sudo systemctl stop desk-ter-relay
+          test "$(systemctl show desk-ter-relay -p ExecMainStatus --value)" = '0'
+          sudo systemctl start desk-ter-relay
+          for ((attempt=0; attempt<50; attempt++)); do
+            if [[ -n $(ss -H -ltn 'sport = :45991') ]]; then break; fi
+            sleep 0.1
+          done
+          after=$(sudo sha256sum /var/lib/desk-ter-relay/relay-state.json)
+          test "$before" = "$after"
+          sudo desk-ter-relay-code | dotnet run --no-build --project tests/Ter22.Relay.Tests/Ter22.Relay.Tests.csproj -c Release
+          printf '%s\n' 'PASS Linux: oprire normala, identitate pastrata si reconectare dupa repornirea serviciului.'
+      - name: Jurnal si oprire serviciu de test
+        if: always()
+        shell: bash
+        run: |
+          sudo journalctl -u desk-ter-relay -n 60 --no-pager || true
+          sudo systemctl stop desk-ter-relay || true
+
   windows:
+    needs: linux-relay
     permissions:
       contents: write # Publicarea compilarii in Releases, in acelasi repository.
       id-token: write # OIDC pentru semnare; utilizat numai cand TER22_SIGNING_ENABLED=true.
@@ -171,6 +249,7 @@ jobs:
             'Conectare locala verificata: aprobare/refuz in interfata, TLS, monitoare, prima imagine GDI si anulare.',
             'Pachet verificat pe runner Windows: instalare, SHA-256 instalat, fereastra principala, regula firewall, inchidere si dezinstalare.',
             'Semnatura Authenticode: vezi SIGNING-INFO.txt. Modul semnat opreste publicarea la lipsa/eroarea semnaturii.',
+            'Releul 0.1.2 publicat anterior: instalare reala systemd pe Ubuntu 24.04, TLS intre clienti, oprire si repornire cu identitate pastrata.',
             'Controlul desktopului, monitoarele fizice si compatibilitatea PC-urilor tinta necesita verificare pe hardware real.'
           ) | Set-Content -LiteralPath artifacts/BUILD-INFO.txt -Encoding utf8
 

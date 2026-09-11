@@ -24,6 +24,8 @@ Versiunea 0.1.2 permite instalarea și lansarea pe Windows 10 Pro 22H2, build 19
 
 Dacă o conexiune nu ajunge la gazdă, urmează [diagnosticul conexiunii](docs/DIAGNOSTIC_CONEXIUNE.md). Două calculatoare din rețele fără rută comună au nevoie de un VPN comun sau de releul propriu.
 
+Pentru calculatoare în locații diferite este pregătită [instalarea releului ca serviciu pe Ubuntu 24.04](deploy/relay/README.md). Instalația păstrează identitatea între reporniri și pornește automat după pornirea serverului. Componenta funcționează cu aplicația Windows 0.1.2; serverul public trebuie furnizat și configurat separat.
+
 Vezi [ghidul în română](GHID_RO.md), [compilarea pe GitHub](COMPILARE_GITHUB.md) și [starea verificărilor](VERIFICARE.md).
 
 Fluxul propus pentru nume unice, conectare automată și favorite autorizate este descris în [planul versiunii următoare](docs/FLUX_NUME_SI_FAVORITE.md). Aceste funcții nu sunt incluse în versiunea 0.1.2.
