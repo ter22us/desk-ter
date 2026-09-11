@@ -1,6 +1,6 @@
 # Desk Ter: conectare prin nume și favorite autorizate
 
-Stare: specificație pentru următoarea versiune, încă neimplementată. Versiunea 0.1.1 modifică ținta Windows și păstrează conectarea prin cod. Compilarea unei versiuni nu înseamnă că serverul de înregistrare a fost instalat.
+Stare: specificație pentru următoarea versiune, încă neimplementată. Versiunea 0.1.2 modifică ținta Windows și păstrează conectarea prin cod. Compilarea unei versiuni nu înseamnă că serverul de înregistrare a fost instalat.
 
 ## Fluxul cerut
 
@@ -93,4 +93,4 @@ Accesul fără confirmare locală nu înseamnă automat acces la ecranul de aute
 - Conectarea prin releu funcționează între rețele diferite fără reguli de intrare pe routerele PC-urilor.
 - Captura, inputul, DPI mixt și monitoarele multiple funcționează în ambele direcții Windows 10 Pro ↔ Windows 11.
 
-Înainte de instalarea serverului trebuie stabilite VPS-ul disponibil și numele DNS. Acestea nu sunt configurate în versiunea 0.1.1.
+Înainte de instalarea serverului trebuie stabilite VPS-ul disponibil și numele DNS. Acestea nu sunt configurate în versiunea 0.1.2.

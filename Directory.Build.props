@@ -6,7 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest</AnalysisLevel>
     <Deterministic>true</Deterministic>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Authors>ter22</Authors>
   </PropertyGroup>
 </Project>

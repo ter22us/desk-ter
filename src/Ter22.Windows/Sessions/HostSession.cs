@@ -12,6 +12,8 @@ internal sealed class HostSession : IDisposable
     private readonly string _token = Identity.NewSecret();
     private readonly string _route = Guid.NewGuid().ToString("N");
     private readonly SemaphoreSlim _session = new(1, 1);
+    private readonly TaskCompletionSource _listening = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public Task Listening => _listening.Task;
     public Action<string>? Status { get; init; }
     public Func<CancellationToken, Task<bool>>? Approve { get; init; }
     public HostSession(IScreenCapture capture) => _capture = capture;
@@ -41,6 +43,7 @@ internal sealed class HostSession : IDisposable
         var tasks = new List<Task>();
         listener.Start(4);
         Status?.Invoke($"Acces pornit pe portul {port}. Așteaptă conexiunea.");
+        _listening.TrySetResult();
         try
         {
             while (!ct.IsCancellationRequested)
@@ -59,7 +62,12 @@ internal sealed class HostSession : IDisposable
     {
         using (client)
         {
-            try { client.NoDelay = true; await HandleAsync(client.GetStream(), ct); }
+            try
+            {
+                client.NoDelay = true;
+                Status?.Invoke($"Cerere TCP primită de la {client.Client.RemoteEndPoint}. Verific TLS și codul de acces.");
+                await HandleAsync(client.GetStream(), ct);
+            }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             { if (!ct.IsCancellationRequested) Status?.Invoke(SafeMessage(ex)); }
             finally { capacity.Release(); }
@@ -69,8 +77,14 @@ internal sealed class HostSession : IDisposable
     private async Task HandleAsync(Stream transport, CancellationToken ct)
     {
         using var ssl = await Connections.SecureServerAsync(transport, _identity, ct);
-        if (!await Connections.AuthenticateViewerAsync(ssl, _token, ct)) return;
-        if (!await _session.WaitAsync(0, ct)) return;
+        if (!await Connections.AuthenticateViewerAsync(ssl, _token, ct))
+        {
+            await RejectAsync(ssl, RejectionReason.InvalidCode, ct);
+            Status?.Invoke("Cod de acces respins. Copiază codul actual pe calculatorul de pe care te conectezi.");
+            return;
+        }
+        if (!await _session.WaitAsync(0, ct))
+        { await RejectAsync(ssl, RejectionReason.Busy, ct); return; }
         var input = new NativeInput();
         try
         {
@@ -78,7 +92,21 @@ internal sealed class HostSession : IDisposable
             {
                 using var approval = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 approval.CancelAfter(TimeSpan.FromSeconds(30));
-                if (!await Approve(approval.Token)) return;
+                Status?.Invoke("Cod verificat. Așteaptă aprobarea în fereastra «cerere de acces» (30 secunde).");
+                bool allowed;
+                try { allowed = await Approve(approval.Token).WaitAsync(approval.Token); }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    await RejectAsync(ssl, RejectionReason.ApprovalExpired, ct);
+                    Status?.Invoke("Cererea a expirat fără aprobare.");
+                    return;
+                }
+                if (!allowed)
+                {
+                    await RejectAsync(ssl, approval.IsCancellationRequested ? RejectionReason.ApprovalExpired : RejectionReason.Denied, ct);
+                    Status?.Invoke("Cererea de acces nu a fost aprobată.");
+                    return;
+                }
             }
             await SendAsync(ssl, Kind.Accepted, [], ct);
             var layout = _capture.GetLayout();
@@ -127,6 +155,9 @@ internal sealed class HostSession : IDisposable
         finally { input.ReleaseAll(); _session.Release(); Status?.Invoke("Sesiune închisă. Accesul rămâne pornit până apeși Oprește accesul."); }
     }
 
+    private static Task RejectAsync(Stream stream, RejectionReason reason, CancellationToken ct) =>
+        SendAsync(stream, Kind.Error, Wire.Json(new ConnectionRejection(reason)), ct);
+
     private static async Task SendAsync(Stream stream, Kind kind, byte[] bytes, CancellationToken ct)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -135,9 +166,11 @@ internal sealed class HostSession : IDisposable
     }
     internal static string SafeMessage(Exception ex) => ex switch
     {
+        ConnectionFailureException => ex.Message,
         OperationCanceledException => "Conexiunea a expirat sau a fost oprită.",
         System.Security.Authentication.AuthenticationException => "Certificatul sau autorizarea nu corespund codului de conectare.",
-        SocketException => "Conexiune indisponibilă. Verifică adresa, portul și paravanul de protecție.",
+        SocketException { SocketErrorCode: SocketError.AddressAlreadyInUse } => "Portul este deja folosit. Alege alt port și generează un cod nou.",
+        SocketException socket => $"Conexiune indisponibilă ({socket.SocketErrorCode}). Verifică adresa, portul și paravanul de protecție.",
         _ => ex.Message.Length <= 250 ? ex.Message : "Conexiunea a fost întreruptă."
     };
     public void Dispose() { _identity.Dispose(); _session.Dispose(); }

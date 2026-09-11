@@ -4,5 +4,8 @@
     <Project Path="src/Ter22.Windows/Ter22.Windows.csproj" />
     <Project Path="src/Ter22.Relay/Ter22.Relay.csproj" />
   </Folder>
-  <Folder Name="/tests/"><Project Path="tests/Ter22.Tests/Ter22.Tests.csproj" /></Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ter22.Tests/Ter22.Tests.csproj" />
+    <Project Path="tests/Ter22.Windows.Tests/Ter22.Windows.Tests.csproj" />
+  </Folder>
 </Solution>

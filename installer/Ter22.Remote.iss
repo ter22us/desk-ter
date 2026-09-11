@@ -1,5 +1,5 @@
 #define MyAppName "Ter22 Remote"
-#define MyAppVersion "0.1.1"
+#define MyAppVersion "0.1.2"
 #define MyAppExeName "Ter22.Remote.exe"
 
 [Setup]

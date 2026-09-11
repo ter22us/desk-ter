@@ -24,9 +24,9 @@ internal sealed class ViewerSession : IDisposable
     public Task Completion { get; private set; } = Task.CompletedTask;
 
     private ViewerSession(SslStream stream, DisplayLayout layout) { _stream = stream; _layout = layout; }
-    public static async Task<ViewerSession> ConnectAsync(Invitation invitation, CancellationToken ct)
+    public static async Task<ViewerSession> ConnectAsync(Invitation invitation, CancellationToken ct, Action<string>? progress = null)
     {
-        var stream = await Connections.ConnectViewerAsync(invitation, ct);
+        var stream = await Connections.ConnectViewerAsync(invitation, ct, progress);
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -35,6 +35,12 @@ internal sealed class ViewerSession : IDisposable
             if (packet.Kind != Kind.Displays) throw new InvalidDataException("Configurația monitoarelor lipsește.");
             var layout = packet.Json<DisplayLayout>(); layout.Validate();
             return new ViewerSession(stream, layout);
+        }
+        catch (Exception ex) when ((ex is IOException or OperationCanceledException) && !ct.IsCancellationRequested)
+        {
+            stream.Dispose();
+            throw new ConnectionFailureException(ConnectionStage.Displays,
+                "Accesul a fost aprobat, dar configurația monitoarelor nu a putut fi primită. Verifică jurnalul calculatorului controlat.", ex);
         }
         catch { stream.Dispose(); throw; }
     }

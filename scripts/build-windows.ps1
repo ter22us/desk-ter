@@ -25,25 +25,6 @@ try {
         -p:DebugType=none -o $output
     if ($LASTEXITCODE -ne 0) { throw 'Compilarea aplicatiei Windows a esuat.' }
     Copy-Item -LiteralPath (Join-Path $projectRoot 'GHID_RO.md') -Destination $output -Force
-    if ($Installer) {
-        if (-not $InnoCompiler) {
-            $found = Get-Command ISCC.exe -ErrorAction SilentlyContinue
-            if ($found) { $InnoCompiler = $found.Source }
-            else {
-                $paths = @(
-                    "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
-                    "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
-                    "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
-                )
-                foreach ($candidate in $paths) { if (Test-Path -LiteralPath $candidate) { $InnoCompiler = $candidate; break } }
-            }
-        }
-        if (-not $InnoCompiler -or -not (Test-Path -LiteralPath $InnoCompiler)) {
-            throw 'Executabilul a fost creat. Pentru instalator instaleaza Inno Setup 6 sau specifica -InnoCompiler calea\ISCC.exe.'
-        }
-        & $InnoCompiler (Join-Path $projectRoot 'installer/Ter22.Remote.iss')
-        if ($LASTEXITCODE -ne 0) { throw 'Generarea instalatorului a esuat.' }
-        Write-Host 'Instalator: artifacts/installer/Ter22-Remote-Setup-0.1.1.exe'
-    }
+    if ($Installer) { & (Join-Path $PSScriptRoot 'build-installer.ps1') -InnoCompiler $InnoCompiler }
     Write-Host 'Aplicatie: artifacts/windows-x64/Ter22.Remote.exe'
 } finally { Pop-Location }

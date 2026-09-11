@@ -1,6 +1,9 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Net;
+using System.Net.Sockets;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Ter22.Core;
 
@@ -64,15 +67,26 @@ public sealed record RelayAddress(string Host, int Port, string Pin, string Key)
 public sealed record Invitation(int Version, string Host, int Port, string Pin, string Token,
     string Route, RelayAddress? Relay)
 {
+    // Optional for compatibility with TRC1 codes from earlier releases.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string[]? AlternateHosts { get; init; }
     public string ToCode() => Codes.Encode("TRC1:", this);
     public static Invitation Parse(string code)
     {
         var result = Codes.Decode<Invitation>("TRC1:", code);
-        if (result.Version != Wire.Version || !Identity.ValidPin(result.Pin) || !Identity.ValidSecret(result.Token)
-            || !Guid.TryParseExact(result.Route, "N", out _)) throw new InvalidDataException("Cod conexiune invalid.");
-        if (result.Relay is null) Codes.ValidateHost(result.Host, result.Port);
-        else result.Relay.Validate();
+        result.Validate();
         return result;
+    }
+    public void Validate()
+    {
+        if (Version != Wire.Version || !Identity.ValidPin(Pin) || !Identity.ValidSecret(Token)
+            || !Guid.TryParseExact(Route, "N", out _)) throw new InvalidDataException("Cod conexiune invalid.");
+        if (Relay is null) Codes.ValidateHost(Host, Port);
+        else Relay.Validate();
+        if (AlternateHosts is { Length: > 7 } || AlternateHosts?.Any(a =>
+            !IPAddress.TryParse(a, out var ip) || ip.AddressFamily != AddressFamily.InterNetwork
+            || ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.Broadcast) || ip.GetAddressBytes()[0] >= 224) == true)
+            throw new InvalidDataException("Lista adreselor LAN/VPN este invalidă.");
     }
 }
 

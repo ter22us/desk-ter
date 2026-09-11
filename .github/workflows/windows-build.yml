@@ -12,6 +12,7 @@ jobs:
   windows:
     permissions:
       contents: write # Publicarea compilarii in Releases, in acelasi repository.
+      id-token: write # OIDC pentru semnare; utilizat numai cand TER22_SIGNING_ENABLED=true.
     runs-on: windows-2025
     timeout-minutes: 30
     defaults:
@@ -20,6 +21,8 @@ jobs:
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_NOLOGO: '1'
+      TER22_SIGNING_ENABLED: ${{ vars.TER22_SIGNING_ENABLED }}
+      TER22_SIGNING_PUBLISHER: ${{ vars.TER22_SIGNING_PUBLISHER }}
     steps:
       - name: Descarca sursele
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -54,12 +57,85 @@ jobs:
           if (-not (Test-Path -LiteralPath $compiler)) { throw 'ISCC.exe lipseste.' }
           "TER22_INNO_COMPILER=$compiler" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Ruleaza testele si construieste aplicatia si instalatorul
+      - name: Verifica configurarea semnarii
+        if: vars.TER22_SIGNING_ENABLED == 'true'
+        env:
+          TER22_AZURE_CLIENT_ID: ${{ vars.TER22_AZURE_CLIENT_ID }}
+          TER22_AZURE_TENANT_ID: ${{ vars.TER22_AZURE_TENANT_ID }}
+          TER22_AZURE_SUBSCRIPTION_ID: ${{ vars.TER22_AZURE_SUBSCRIPTION_ID }}
+          TER22_SIGNING_ENDPOINT: ${{ vars.TER22_SIGNING_ENDPOINT }}
+          TER22_SIGNING_ACCOUNT: ${{ vars.TER22_SIGNING_ACCOUNT }}
+          TER22_SIGNING_PROFILE: ${{ vars.TER22_SIGNING_PROFILE }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_REF -ne 'refs/heads/main') { throw 'Semnarea este permisa numai din main.' }
+          foreach ($name in @('TER22_AZURE_CLIENT_ID', 'TER22_AZURE_TENANT_ID', 'TER22_AZURE_SUBSCRIPTION_ID',
+              'TER22_SIGNING_ENDPOINT', 'TER22_SIGNING_ACCOUNT', 'TER22_SIGNING_PROFILE', 'TER22_SIGNING_PUBLISHER')) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Semnarea a fost activata, dar lipseste variabila $name."
+            }
+          }
+
+      - name: Ruleaza testele si construieste aplicatia
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Path artifacts -Force | Out-Null
-          & ./scripts/build-windows.ps1 -Installer -InnoCompiler $env:TER22_INNO_COMPILER *>&1 |
+          & ./scripts/build-windows.ps1 *>&1 |
             Tee-Object -FilePath artifacts/build.log
+
+      - name: Verifica cererea de acces si prima imagine prin interfata Windows
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & dotnet run --project tests/Ter22.Windows.Tests/Ter22.Windows.Tests.csproj -c Release *>&1 |
+            Tee-Object -FilePath artifacts/connection-tests.log
+          if ($LASTEXITCODE -ne 0) { throw 'Testele conectarii Windows au esuat.' }
+
+      - name: Autentificare Azure pentru semnare prin OIDC
+        if: vars.TER22_SIGNING_ENABLED == 'true'
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
+        with:
+          client-id: ${{ vars.TER22_AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.TER22_AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.TER22_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Semneaza aplicatia inainte de impachetare
+        if: vars.TER22_SIGNING_ENABLED == 'true'
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: ${{ vars.TER22_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.TER22_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.TER22_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\artifacts\windows-x64\Ter22.Remote.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+
+      - name: Construieste instalatorul din aplicatia publicata
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./scripts/build-installer.ps1 -InnoCompiler $env:TER22_INNO_COMPILER *>&1 |
+            Tee-Object -FilePath artifacts/installer-build.log
+
+      - name: Semneaza instalatorul
+        if: vars.TER22_SIGNING_ENABLED == 'true'
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: ${{ vars.TER22_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.TER22_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.TER22_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\artifacts\installer\Ter22-Remote-Setup-0.1.2.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+
+      - name: Verifica si consemneaza semnaturile
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./scripts/verify-signatures.ps1 -RequireSigned:($env:TER22_SIGNING_ENABLED -eq 'true') `
+            -ExpectedPublisher $env:TER22_SIGNING_PUBLISHER *>&1 |
+            Tee-Object -FilePath artifacts/SIGNING-INFO.txt
 
       - name: Construieste releul Linux optional
         run: |
@@ -78,7 +154,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $paths = @(
             'artifacts/windows-x64/Ter22.Remote.exe',
-            'artifacts/installer/Ter22-Remote-Setup-0.1.1.exe',
+            'artifacts/installer/Ter22-Remote-Setup-0.1.2.exe',
             'artifacts/Ter22-Relay-linux-x64.tar.gz'
           )
           $hashes = foreach ($path in $paths) {
@@ -92,7 +168,9 @@ jobs:
             "Commit: $env:GITHUB_SHA",
             "Run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID",
             'Verificare automata: testele incluse, publicare Windows x64, Inno Setup si publicare releu Linux.',
-            'Pachet verificat pe runner Windows: instalare, SHA-256 instalat, fereastra principala, inchidere si dezinstalare.',
+            'Conectare locala verificata: aprobare/refuz in interfata, TLS, monitoare, prima imagine GDI si anulare.',
+            'Pachet verificat pe runner Windows: instalare, SHA-256 instalat, fereastra principala, regula firewall, inchidere si dezinstalare.',
+            'Semnatura Authenticode: vezi SIGNING-INFO.txt. Modul semnat opreste publicarea la lipsa/eroarea semnaturii.',
             'Controlul desktopului, monitoarele fizice si compatibilitatea PC-urilor tinta necesita verificare pe hardware real.'
           ) | Set-Content -LiteralPath artifacts/BUILD-INFO.txt -Encoding utf8
 
@@ -109,7 +187,7 @@ jobs:
         id: installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          path: artifacts/installer/Ter22-Remote-Setup-0.1.1.exe
+          path: artifacts/installer/Ter22-Remote-Setup-0.1.2.exe
           archive: false
           if-no-files-found: error
           retention-days: 14
@@ -123,7 +201,7 @@ jobs:
             'Compilarea s-a incheiat. Descarca fisierele fiind autentificat pe GitHub.',
             '',
             "- [Aplicatie Ter22.Remote.exe]($env:TER22_APP_URL)",
-            "- [Instalator Ter22-Remote-Setup-0.1.1.exe]($env:TER22_INSTALLER_URL)",
+            "- [Instalator Ter22-Remote-Setup-0.1.2.exe]($env:TER22_INSTALLER_URL)",
             '',
             'Instaleaza versiunea pe doua PC-uri Windows 10 Pro 22H2 / Windows 11 x64 pentru verificarea conexiunii si a monitoarelor.'
           ) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
@@ -134,10 +212,15 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $tag = "build-$env:GITHUB_RUN_NUMBER-$env:GITHUB_RUN_ATTEMPT"
+          $signingNote = if ($env:TER22_SIGNING_ENABLED -eq 'true') {
+            'Aplicatia si instalatorul au semnaturi Authenticode valide, cu marca temporala; vezi SIGNING-INFO.txt. SmartScreen evalueaza separat reputatia.'
+          } else {
+            'Aceasta compilare NU este semnata digital: certificatul/serviciul de semnare nu este configurat. Windows poate afisa un avertisment SmartScreen.'
+          }
           @(
-            'Compilare de dezvoltare Desk Ter / Ter22 Remote 0.1.1 pentru Windows 10 Pro 22H2 / Windows 11 x64.',
+            'Compilare de dezvoltare Desk Ter / Ter22 Remote 0.1.2 pentru Windows 10 Pro 22H2 / Windows 11 x64.',
             '',
-            '- Ter22-Remote-Setup-0.1.1.exe: instalator pentru PC-urile Windows.',
+            '- Ter22-Remote-Setup-0.1.2.exe: instalator pentru PC-urile Windows.',
             '- Ter22.Remote.exe: aplicatia cu runtime .NET inclus.',
             '- Ter22-Relay-linux-x64.tar.gz: releul optional pentru un server Linux propriu.',
             '- SHA256SUMS.txt: hashurile celor trei fisiere.',
@@ -145,17 +228,19 @@ jobs:
             "Surse: commit $env:GITHUB_SHA.",
             "Jurnal: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID",
             '',
-            'Testele automate, compilarea si verificarea instalarii, pornirii si dezinstalarii pe runner Windows au trecut.',
+            'Testele automate, conexiunea locala cu aprobare si prima imagine GDI, compilarea, firewallul si ciclul instalarii pe runner Windows au trecut.',
             'Captura, controlul, monitoarele fizice si compatibilitatea PC-urilor tinta trebuie verificate pe hardware real.',
-            'Este necesar ca utilizatorul Windows sa fie autentificat, desktopul deblocat si aplicatia deschisa. Executabilele proiectului nu sunt semnate digital.',
+            'Este necesar ca utilizatorul Windows sa fie autentificat, desktopul deblocat si aplicatia deschisa.',
+            $signingNote,
             'Pentru releul Linux, dupa extragere aplica chmod 700 Ter22.Relay si urmeaza GHID_RO.md.'
           ) | Set-Content -LiteralPath artifacts/release-notes.md -Encoding utf8
           $assets = @(
             'artifacts/windows-x64/Ter22.Remote.exe',
-            'artifacts/installer/Ter22-Remote-Setup-0.1.1.exe',
+            'artifacts/installer/Ter22-Remote-Setup-0.1.2.exe',
             'artifacts/Ter22-Relay-linux-x64.tar.gz',
             'artifacts/SHA256SUMS.txt',
             'artifacts/BUILD-INFO.txt',
+            'artifacts/SIGNING-INFO.txt',
             'GHID_RO.md'
           )
           & gh release create $tag @assets --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA `
@@ -173,6 +258,9 @@ jobs:
           name: Ter22-Remote-verificare
           path: |
             artifacts/build.log
+            artifacts/installer-build.log
+            artifacts/connection-tests.log
+            artifacts/SIGNING-INFO.txt
             artifacts/relay-build.log
             artifacts/smoke.log
             artifacts/install-smoke.log

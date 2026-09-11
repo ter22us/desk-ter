@@ -1,4 +1,4 @@
-# Ter22 Remote 0.1.1 — aplicație Windows personalizabilă
+# Ter22 Remote 0.1.2 — aplicație Windows personalizabilă
 
 Proiect C#/.NET propriu pentru controlul calculatoarelor personale, cu interfață Windows Forms, captură de ecran, mouse și tastatură, monitoare multiple și un releu privat opțional. Același executabil Windows permite atât primirea unei conexiuni, cât și controlarea altui calculator. Nu depinde de instalarea AnyDesk sau RustDesk.
 
@@ -46,7 +46,7 @@ Pentru compilare pe un calculator Windows găzduit de GitHub, fără SDK instala
 
 ```text
 artifacts\windows-x64\Ter22.Remote.exe
-artifacts\installer\Ter22-Remote-Setup-0.1.1.exe
+artifacts\installer\Ter22-Remote-Setup-0.1.2.exe
 ```
 
 Executabilul aplicației include runtime-ul .NET. Calculatoarele pe care instalezi programul nu au nevoie de SDK sau de instalarea separată a runtime-ului .NET. Publicarea poate produce și fișiere auxiliare; instalatorul include întregul director de publicare.
@@ -76,10 +76,10 @@ Pentru publicarea aplicației fără instalator, omite `-Installer`. Poți desch
 Pe calculatorul care va fi controlat:
 
 1. Pornește Ter22 Remote și lasă modul „Direct — LAN / VPN”.
-2. Verifică adresa IPv4 a interfeței prin care va fi accesat calculatorul. Dacă ai Ethernet, Wi-Fi și VPN, aplicația nu poate decide în locul tău ruta potrivită; corectează adresa din câmp când este necesar.
+2. Lista adreselor arată interfețele Ethernet, Wi-Fi și VPN active. Codul nou include adresa selectată și până la șapte adrese IPv4 alternative. Clientul încearcă adresele și verifică certificatul înainte de a trimite tokenul. Poți introduce manual un IP/nume DNS; rămâne necesar ca celălalt PC să aibă o rută către cel puțin una dintre adrese.
 3. Păstrează portul `45990` sau alege alt port liber. Conexiunile directe folosesc IPv4 în această versiune.
-4. Lasă bifată acceptarea locală și apasă „Pornește accesul”.
-5. Dacă Windows solicită acces prin firewall, permite aplicația pentru profilul de rețea pe care îl folosești. Nu dezactiva firewallul. Pentru configurare manuală, folosește o regulă de intrare pentru executabilul Ter22.Remote și portul TCP ales, restrânsă la subrețeaua sau IP-urile tale.
+4. Apasă „Permite LAN/VPN în firewall” și aprobă configurarea în dialogul UAC Windows. Regula se referă la acest executabil, TCP și portul ales. Sunt permise surse din subrețeaua locală, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` și `100.64.0.0/10`; regula se aplică și profilului Public deoarece unele VPN-uri sunt clasificate astfel. Nu permite surse Internet arbitrare și nu activează redirecționări pe router. O regulă existentă de blocare poate avea prioritate și este semnalată; aplicația nu o șterge automat.
+5. Lasă bifată acceptarea locală și apasă „Pornește accesul”. Codul direct apare după pornirea listenerului. Dacă schimbi portul sau muți executabilul portabil, configurează din nou regula pentru noua combinație cale/port. Regulile create se numesc `Desk Ter LAN-VPN … TCP …` și pot fi eliminate din Windows Defender Firewall → Setări complexe → Reguli de intrare; dezinstalarea per utilizator nu elimină automat reguli administrative.
 6. Apasă „Copiază codul privat”. Transferă-l confidențial pe celălalt calculator.
 
 Pe calculatorul de pe care lucrezi:
@@ -95,6 +95,8 @@ Pe calculatorul de pe care lucrezi:
 Pentru acces fără acceptarea fiecărei conexiuni, debifează explicit opțiunea de acceptare **înainte să pornești accesul**. Aplicația trebuie să rămână deschisă și desktopul deblocat. Acesta nu este acces înainte de autentificarea în Windows.
 
 Apasă F12 pentru a opri controlul din fereastra vizualizată. Pentru a-l reactiva bifează „Control mouse/tastatură” și fă clic pe imagine. „Deconectare” închide toate ferestrele sesiunii; pe gazdă, „Oprește accesul” invalidează codul și oprește primirea conexiunilor.
+
+Jurnalul arată separat încercările TCP, negocierea TLS și așteptarea aprobării. **Copiază diagnosticul** copiază versiunea, Windows și mesajele tehnice, fără codul privat. Diagnosticul poate conține IP-uri locale; trimite-l numai persoanei care investighează conexiunea. Vezi [diagnosticul detaliat](docs/DIAGNOSTIC_CONEXIUNE.md) și [semnarea instalatorului](docs/SEMNARE_WINDOWS.md).
 
 ## 4. Conectarea prin internet
 

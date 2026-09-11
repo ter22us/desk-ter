@@ -1,4 +1,4 @@
-# Verificarea livrării Ter22 Remote 0.1.1
+# Verificarea livrării Ter22 Remote 0.1.2
 
 Data: 11 septembrie 2026.
 
@@ -16,7 +16,13 @@ Data: 11 septembrie 2026.
 
 Acea rulare s-a oprit la instalator, deoarece Inno Setup nu distribuie traducerea română în instalarea standard. Traducerea este acum inclusă în proiect, cu proveniență și licență, iar configurația folosește fișierul local.
 
-Fluxul verifică suplimentar pachetul rezultat prin `scripts/test-windows-package.ps1`: instalare în română într-un director temporar, compararea hashului aplicației instalate, deschiderea și închiderea ferestrei principale, apoi dezinstalare. Acest test nu pornește accesul la distanță.
+În 0.1.2, suita Core are 15 teste. Cele cinci cazuri noi verifică lista limitată de adrese, conectarea printr-o adresă alternativă fără trimiterea tokenului unui calculator cu alt certificat, eroarea TCP distinctă de aprobare, anularea în negocierea TLS și interoperabilitatea cu un server TLS 1.2.
+
+`tests/Ter22.Windows.Tests` rulează cu mesajeria Windows Forms reală: pornește accesul din fereastra principală, verifică lipsa accesului înaintea aprobării, apasă Refuză/Permite în dialog, primește configurația monitoarelor și decodează primul JPEG capturat prin GDI. Verifică și oprirea accesului cu un dialog de aprobare deschis. Conexiunea este pe loopback, în același runner, nu între PC-urile utilizatorului.
+
+`scripts/test-windows-package.ps1` verifică instalarea în română, hashul executabilului instalat, pornirea/închiderea ferestrei, helperul real de configurare Windows Firewall și dezinstalarea. Regula temporară este inspectată și eliminată de test. Testul firewall necesită un runner cu drepturi administrative; nu schimbă politica implicită a paravanului.
+
+Semnarea cu Azure Artifact Signing este o integrare condiționată, neexecutată până la configurarea identității și resurselor Azure. Modul semnat verifică semnăturile, publisherul și mărcile temporale înainte de publicare. Rezultatul este în `SIGNING-INFO.txt`; o compilare fără configurarea serviciului este marcată explicit nesemnată.
 
 O versiune este publicată în **Releases** numai după trecerea tuturor etapelor. Pentru confirmarea aferentă fiecărei versiuni, verifică `BUILD-INFO.txt`, commitul asociat și jurnalul acelei rulări din Actions. Jurnalele etapelor sunt păstrate și în artefactul `Ter22-Remote-verificare`.
 
@@ -32,7 +38,7 @@ Scripturile de compilare și fluxul opresc procesul la o eroare. În mediul loca
 
 ## Windows 10 Pro
 
-Versiunea 0.1.1 stabilește același prag pentru instalator și executabilul portabil: Windows 10 22H2, build 19045+, x64, sau Windows 11 x64. Nu este introdusă o dependență de API-uri exclusive Windows 11. Captura GDI, inputul Win32 și Windows Forms existente rămân baza aplicației.
+Versiunea 0.1.2 stabilește același prag pentru instalator și executabilul portabil: Windows 10 22H2, build 19045+, x64, sau Windows 11 x64. Nu este introdusă o dependență de API-uri exclusive Windows 11. Captura GDI, inputul Win32 și Windows Forms existente rămân baza aplicației.
 
 Nu declarăm testare efectuată pe Windows 10 Pro: runner-ul disponibil este Windows Server 2025. Trebuie verificate pe Windows 10 Pro instalarea, pornirea, captura, inputul, negocierea TLS 1.2, DPI mixt și monitoarele multiple. Pentru conectarea mixtă se verifică Windows 10 ca gazdă și Windows 11 ca vizualizator, apoi invers.
 
@@ -42,7 +48,10 @@ Nu declarăm testare efectuată pe Windows 10 Pro: runner-ul disponibil este Win
 
 | Scenariu | Rezultat așteptat |
 |---|---|
-| Compilare pe un PC curat cu .NET SDK 10 | Cele 10 teste trec; publicarea și Inno Setup se încheie fără erori |
+| Compilare pe un PC curat cu .NET SDK 10 | Cele 15 teste Core trec; publicarea și Inno Setup se încheie fără erori |
+| Test Windows separat, cu desktop deblocat | `dotnet run --project tests/Ter22.Windows.Tests -c Release` verifică aprobarea și prima imagine |
+| LAN și VPN active simultan | Clientul găsește o adresă accesibilă și respinge certificatele altor calculatoare |
+| TCP blocat sau lipsa rutei | Eroare TCP; nu se pretinde că TLS/aprobarea a început |
 | Instalare pe un PC fără SDK/runtime .NET separat | Aplicația pornește; scurtătura și dezinstalarea funcționează |
 | Conexiune cu acceptare locală | Desktopul nu este transmis înaintea autorizării |
 | Cerere refuzată sau expirată | Conexiunea se închide; gazda poate primi o nouă cerere |

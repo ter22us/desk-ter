@@ -14,10 +14,10 @@ Destinația cerută este repository-ul **public `ter22us/desk-ter`**. Conținutu
 
 1. Pregătește Windows x64 și .NET SDK 10.0.401.
 2. Descarcă Inno Setup 6.7.3 din publicarea oficială, verifică hashul SHA-256 și semnătura editorului, apoi instalează compilatorul pe calculatorul temporar de compilare.
-3. Rulează cele 10 teste incluse, publică aplicația cu runtime .NET inclus și generează instalatorul. O eroare oprește livrarea executabilelor.
+3. Rulează cele 15 teste Core, publică aplicația cu runtime inclus, verifică aprobarea și prima imagine în Windows Forms, apoi generează instalatorul. O eroare oprește livrarea executabilelor. Semnarea condiționată se face înainte de împachetare pentru aplicație și după împachetare pentru instalator; vezi [configurare](docs/SEMNARE_WINDOWS.md).
 4. Construiește și arhivează releul Linux x64 opțional.
 5. Instalează pachetul într-un director temporar, verifică hashul aplicației instalate, deschiderea și închiderea ferestrei principale, apoi dezinstalează pachetul. Testul nu pornește accesul la distanță.
-6. Salvează separat `Ter22.Remote.exe` și `Ter22-Remote-Setup-0.1.1.exe`, plus jurnalul și hashurile în Artifacts, timp de 14 zile.
+6. Salvează separat `Ter22.Remote.exe` și `Ter22-Remote-Setup-0.1.2.exe`, plus jurnalul și hashurile în Artifacts, timp de 14 zile.
 7. Publică aplicația, instalatorul, releul și hashurile în **Releases**, sub eticheta unică `build-N-M`, unde N este numărul rulării și M este numărul încercării. Publicările sunt marcate ca versiuni de dezvoltare (pre-release); nu expiră după 14 zile și nu înlocuiesc compilările anterioare.
 
 După o rulare reușită, deschide **Releases** din repository și descarcă instalatorul din **Assets**. Acesta este un fișier `.exe` public, care nu necesită extragere din ZIP. Alternativ, pagina rulării din **Actions** afișează linkurile în sumar și fișierele în **Artifacts**; această variantă necesită autentificare GitHub pentru descărcare.

@@ -30,7 +30,7 @@ if not defined TER22_ISCC (
 if errorlevel 1 goto :failed
 echo.
 echo Aplicatie: artifacts\windows-x64\Ter22.Remote.exe
-echo Instalator: artifacts\installer\Ter22-Remote-Setup-0.1.1.exe
+echo Instalator: artifacts\installer\Ter22-Remote-Setup-0.1.2.exe
 echo.
 pause
 exit /b 0

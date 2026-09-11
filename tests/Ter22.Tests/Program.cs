@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Security.Authentication;
 using Ter22.Core;
 
@@ -9,11 +10,16 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Protocol: citire fragmentată", FragmentedPacket),
     ("Protocol: limite înainte de alocare", PacketBounds),
     ("Coduri: validare și versiune", CodeValidation),
+    ("Coduri: adrese alternative limitate și compatibilitate TRC1", AlternateCodeValidation),
     ("Monitoare: coordonate negative și scalare", MonitorCoordinates),
     ("JPEG: verificarea dimensiunilor înainte de decodare", JpegDimensions),
     ("TLS: certificat fixat și autentificare corectă", () => AuthenticationTest(false, false)),
     ("TLS: respingerea altui certificat", () => AuthenticationTest(true, false)),
     ("TLS: respingerea altui token", () => AuthenticationTest(false, true)),
+    ("Conectare: adresă alternativă și respingerea unui alt calculator", AlternateAddressConnection),
+    ("Conectare: eroare TCP distinctă de aprobare", NetworkFailure),
+    ("Conectare: anulare în negocierea TLS", CancelTls),
+    ("TLS 1.2: conectare compatibilă cu Windows 10", Tls12Connection),
     ("Releu: transfer TLS între capete și curățarea sesiunii", RelayRoundTrip),
     ("Releu: respingerea cheii greșite", RelayWrongKey)
 };
@@ -78,6 +84,114 @@ static Task MonitorCoordinates()
         "Centrul imaginii nu corespunde centrului monitorului.");
     Check(!Geometry.TryMap(double.NaN, 10, 800, 800, frame, out _, out _), "NaN acceptat.");
     return Task.CompletedTask;
+}
+static Task AlternateCodeValidation()
+{
+    using var identity = Identity.Create();
+    var invitation = new Invitation(1, "192.168.1.10", 45990, identity.Pin, Identity.NewSecret(), Guid.NewGuid().ToString("N"), null)
+        { AlternateHosts = ["10.77.22.1", "100.64.1.2"] };
+    Check(Invitation.Parse(invitation.ToCode()).AlternateHosts!.SequenceEqual(invitation.AlternateHosts), "Adresele alternative s-au pierdut.");
+    foreach (var addresses in new[] { new[] { "https://invalid.test" }, new[] { "0.0.0.0" }, new[] { "224.0.0.1" }, Enumerable.Repeat("10.0.0.1", 8).ToArray() })
+    {
+        try { Invitation.Parse((invitation with { AlternateHosts = addresses }).ToCode()); throw new Exception("Adrese invalide acceptate."); }
+        catch (InvalidDataException) { }
+    }
+    return Task.CompletedTask;
+}
+static async Task AlternateAddressConnection()
+{
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+    using var correct = Identity.Create(); using var wrong = Identity.Create();
+    // Same port on two addresses: the first address is reachable but is another computer.
+    var first = new TcpListener(IPAddress.Parse("127.0.0.2"), 0); first.Start();
+    int port = ((IPEndPoint)first.LocalEndpoint).Port;
+    var second = new TcpListener(IPAddress.Loopback, port); second.Start();
+    string token = Identity.NewSecret();
+    bool leakedToken = false;
+    Task wrongHost = Task.Run(async () =>
+    {
+        try
+        {
+            using var client = await first.AcceptTcpClientAsync(timeout.Token);
+            using var ssl = await Connections.SecureServerAsync(client.GetStream(), wrong, timeout.Token);
+            var packet = await Wire.ReadAsync(ssl, timeout.Token);
+            leakedToken = packet.Kind == Kind.Auth;
+        }
+        catch (Exception ex) when (ex is IOException or AuthenticationException or OperationCanceledException) { }
+    });
+    Task correctHost = Task.Run(async () =>
+    {
+        using var client = await second.AcceptTcpClientAsync(timeout.Token);
+        using var ssl = await Connections.SecureServerAsync(client.GetStream(), correct, timeout.Token);
+        Check(await Connections.AuthenticateViewerAsync(ssl, token, timeout.Token), "Tokenul nu a ajuns la adresa corectă.");
+        await Wire.WriteAsync(ssl, Kind.Accepted, ReadOnlyMemory<byte>.Empty, timeout.Token);
+    });
+    try
+    {
+        var invitation = new Invitation(1, "127.0.0.2", port, correct.Pin, token, Guid.NewGuid().ToString("N"), null)
+            { AlternateHosts = ["127.0.0.1"] };
+        using var connected = await Connections.ConnectViewerAsync(invitation, timeout.Token);
+        await Task.WhenAll(wrongHost, correctHost);
+        Check(!leakedToken, "Token trimis calculatorului cu alt certificat.");
+    }
+    finally { await timeout.CancelAsync(); first.Stop(); second.Stop(); }
+}
+static async Task NetworkFailure()
+{
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+    using var identity = Identity.Create();
+    // Reserve the endpoint without listening: no other test can take it between allocation and dialing.
+    using var reserved = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+    reserved.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+    int port = ((IPEndPoint)reserved.LocalEndPoint!).Port;
+    var invitation = new Invitation(1, "127.0.0.1", port, identity.Pin, Identity.NewSecret(), Guid.NewGuid().ToString("N"), null);
+    var messages = new List<string>();
+    try { using var stream = await Connections.ConnectViewerAsync(invitation, timeout.Token, messages.Add); throw new Exception("Port fără listener acceptat."); }
+    catch (ConnectionFailureException ex) { Check(ex.Stage == ConnectionStage.Network, "Eroarea de rețea a fost prezentată ca eroare de aprobare."); }
+    Check(!messages.Any(m => m.StartsWith("TLS verificat", StringComparison.Ordinal)), "TLS raportat înainte de conectare.");
+    Check(!messages.Any(m => m.Contains(invitation.Token, StringComparison.Ordinal)), "Token în diagnostic.");
+}
+static async Task CancelTls()
+{
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+    using var request = new CancellationTokenSource();
+    using var identity = Identity.Create();
+    var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
+    try
+    {
+        var invitation = new Invitation(1, "127.0.0.1", ((IPEndPoint)listener.LocalEndpoint).Port,
+            identity.Pin, Identity.NewSecret(), Guid.NewGuid().ToString("N"), null);
+        Task<SslStream> connecting = Connections.ConnectViewerAsync(invitation, request.Token);
+        using var accepted = await listener.AcceptTcpClientAsync(timeout.Token);
+        await request.CancelAsync();
+        await Reject<OperationCanceledException>(async () => { using var stream = await connecting; });
+    }
+    finally { listener.Stop(); }
+}
+static async Task Tls12Connection()
+{
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+    using var identity = Identity.Create();
+    var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
+    string token = Identity.NewSecret();
+    var server = Task.Run(async () =>
+    {
+        using var client = await listener.AcceptTcpClientAsync(timeout.Token);
+        using var ssl = new SslStream(client.GetStream(), false);
+        await ssl.AuthenticateAsServerAsync(new SslServerAuthenticationOptions
+        { ServerCertificate = identity.Certificate, EnabledSslProtocols = SslProtocols.Tls12 }, timeout.Token);
+        Check(await Connections.AuthenticateViewerAsync(ssl, token, timeout.Token), "TLS 1.2 nu a autentificat codul.");
+        await Wire.WriteAsync(ssl, Kind.Accepted, ReadOnlyMemory<byte>.Empty, timeout.Token);
+    });
+    try
+    {
+        var invitation = new Invitation(1, "127.0.0.1", ((IPEndPoint)listener.LocalEndpoint).Port,
+            identity.Pin, token, Guid.NewGuid().ToString("N"), null);
+        using var ssl = await Connections.ConnectViewerAsync(invitation, timeout.Token);
+        Check(ssl.SslProtocol == SslProtocols.Tls12, "TLS 1.2 nu a fost negociat.");
+        await server;
+    }
+    finally { listener.Stop(); }
 }
 static Task JpegDimensions()
 {
