@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ter22.Core/Ter22.Core.csproj" />
+    <Project Path="src/Ter22.Windows/Ter22.Windows.csproj" />
+    <Project Path="src/Ter22.Relay/Ter22.Relay.csproj" />
+  </Folder>
+  <Folder Name="/tests/"><Project Path="tests/Ter22.Tests/Ter22.Tests.csproj" /></Folder>
+</Solution>
