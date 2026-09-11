@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+artifacts/
+relay-state.json
+*.pfx
+*.user
+.vs/
